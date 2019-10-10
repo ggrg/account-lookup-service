@@ -4,10 +4,10 @@ orbs:
   anchore: anchore/anchore-engine@1.6.0
 
 # Use this command to set the `CIRCLE_TAG` environment variable when testing without git tags
-test_env: &test_env
-  name: Set the sample CIRCLE_TAG
-  command: |
-    echo 'export CIRCLE_TAG=test' >> $BASH_ENV
+# test_env: &test_env
+#   name: Set the sample CIRCLE_TAG
+#   command: |
+#     echo 'export CIRCLE_TAG=test' >> $BASH_ENV
 
 defaults_Dependencies: &defaults_Dependencies |
   apk --no-cache add git
@@ -409,8 +409,8 @@ jobs:
     executor: default-machine
     steps:
       - checkout
-      - run:
-          <<: *test_env
+      # - run:
+          # <<: *test_env
       - run:
           <<: *defaults_environment
       - run:
@@ -430,8 +430,8 @@ jobs:
     executor: default-machine
     steps:
       - checkout
-      - run:
-          <<: *test_env
+      # - run:
+      #     <<: *test_env
       - run:
           <<: *defaults_environment
       - run:
@@ -439,31 +439,24 @@ jobs:
           command: |
             echo 'export RELEASE_TAG=$RELEASE_TAG_PROD' >> $BASH_ENV
       - run:
-          <<: *defaults_build_docker_login
-      - run:
           <<: *defaults_build_docker_build
       - run:
           name: save docker image to workspace
           command: docker save -o /tmp/docker-image.tar $DOCKER_ORG/$CIRCLE_PROJECT_REPONAME:$CIRCLE_TAG
-
-       # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job. 
       - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is 
-          # taken to be the root directory of the workspace.
           root: /tmp
-          # Must be relative path from root
           paths:
             - ./docker-image.tar
       
   license-scan:
     executor: default-machine
     steps:
-      - run:
-          <<: *test_env
+      # - run:
+      #     <<: *test_env
       - attach_workspace:
           at: /tmp
       - run:
-          name: refresh docker image from workspace
+          name: Load the pre-built docker image from workspace
           command: docker load -i /tmp/docker-image.tar
       - run:
           <<: *defaults_license_scanner
@@ -482,16 +475,14 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: refresh docker image from workspace
+          name: Load the pre-built docker image from workspace
           command: docker load -i /tmp/docker-image.tar
       - anchore/analyze_local_image:
           dockerfile_path: ./Dockerfile
-          # TODO: change back later on
-          # image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
-          image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:test
+          image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
           policy_bundle_file_path: .circleci/.anchore/policy_bundle.json
           # I think only if policy_failure is false, will the `anchore/parse_reports` step get run
-          policy_failure: false
+          policy_failure: true
           timeout: '500'
       - anchore/parse_reports
       - store_artifacts:
@@ -500,13 +491,13 @@ jobs:
   publish:
     executor: default-machine
     steps:
-    # TODO: make sure we have restored from cache
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /tmp
       - run:
-          name: refresh docker image from workspace
+          name: Load the pre-built docker image from workspace
           command: docker load -i /tmp/docker-image.tar
+      - run:
+          <<: *defaults_build_docker_login
       - run:
           <<: *defaults_build_docker_build_release
       - run:
