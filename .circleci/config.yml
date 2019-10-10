@@ -490,7 +490,8 @@ jobs:
           # image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
           image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:test
           policy_bundle_file_path: .circleci/.anchore/policy_bundle.json
-          policy_failure: true
+          # I think only if policy_failure is false, will the `anchore/parse_reports` step get run
+          policy_failure: false
           timeout: '500'
       - anchore/parse_reports
       - store_artifacts:
