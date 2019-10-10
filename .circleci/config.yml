@@ -481,10 +481,31 @@ jobs:
           dockerfile_path: ./Dockerfile
           image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
           policy_bundle_file_path: .circleci/.anchore/policy_bundle.json
-          # I think only if policy_failure is false, will the `anchore/parse_reports` step get run
-          policy_failure: true
+          # Anchore bug: if policy_failure is `true`, reports don't get written - we manually check for 
+          policy_failure: false
           timeout: '500'
-      - anchore/parse_reports
+      - run:
+          name: View parsed vulnerability analysis report.
+          command: |
+            if [[ ! $(which jq) ]]; then
+              (set +o pipefail; apk add jq || apt-get install -y jq || yum install -y jq)
+            fi
+            if [[ $(ls anchore-reports/*content-os*.json 2> /dev/null) ]]; then
+              printf "\n%s\n" "The following OS packages are installed:"
+              jq '[.content | sort_by(.package) | .[] | {package: .package, version: .version}]' anchore-reports/*content-os*.json
+            fi
+            if [[ $(ls anchore-reports/*vuln*.json 2> /dev/null) ]]; then
+              printf "\n%s\n" "The following vulnerabilities were found:"
+              jq '[.vulnerabilities | group_by(.package) | .[] | {package: .[0].package, vuln: [.[].vuln]}]' anchore-reports/*vuln*.json
+            fi
+
+            # Check the status of the policy.json for whether or not our tests failed
+            failCount=$(cat anchore-reports/*policy*.json | grep '\"status\": \"fail\"' | wc -l)
+            if [ $failCount -gt 0 ]; then
+              echo "Found ${failCount} failures"
+              exit 1
+            fi
+
       - store_artifacts:
           path: anchore-reports
 
@@ -585,7 +606,7 @@ workflows:
           context: org-global
           filters:
             tags:
-              only: /.*/
+              only: /v[0-9]+(\.[0-9]+)*/
             branches:
               ignore:
                 - /feature*/
