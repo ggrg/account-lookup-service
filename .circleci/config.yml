@@ -477,8 +477,6 @@ jobs:
   image-scan:
     executor: anchore/anchore_engine
     steps:
-      - run:
-          <<: *test_env
       - setup_remote_docker
       - checkout
       - attach_workspace:
@@ -486,14 +484,11 @@ jobs:
       - run:
           name: refresh docker image from workspace
           command: docker load -i /tmp/docker-image.tar
-      - run:
-          name: test local envs
-          command: |
-            echo "CIRCLE_TAG is ${CIRCLE_TAG}"
-            docker images
       - anchore/analyze_local_image:
           dockerfile_path: ./Dockerfile
-          image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
+          # TODO: change back later on
+          # image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
+          image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:test
           policy_bundle_file_path: .circleci/.anchore/policy_bundle.json
           policy_failure: true
           timeout: '500'
