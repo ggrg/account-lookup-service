@@ -681,14 +681,12 @@ workflows:
             # - test-integration
             # - vulnerability-check
             # - audit-licenses
-          # filters:
-            # TODO: change back to ignore all branches and only build tags
-            # tags:
-            #   only: /v[0-9]+(\.[0-9]+)*/
-            # branches:
-              # only: /feature\/1003.*/
-              # ignore:
-              #   - /.*/
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore:
+                - /.*/
 
       # - build-hotfix:
       #     context: org-global
@@ -707,30 +705,29 @@ workflows:
       #       branches:
       #         ignore:
       #           - /.*/
+
       - license-scan:
           context: org-global
           requires:
             - build
-          # filters:
-            # TODO: change back to ignore all branches and only build tags
-            # tags:
-            #   only: /v[0-9]+(\.[0-9]+)*/
-            # branches:
-              # only: /feature\/1003.*/
-              # ignore:
-              #   - /.*/
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              only: /feature\/1003.*/
+              ignore:
+                - /.*/
 
       - image-scan:
           context: org-global
           requires:
             - build
-          # filters:
-            # TODO: change back to ignore all branches and only build tags
-            # tags:
-            #   only: /v[0-9]+(\.[0-9]+)*/
-            # branches:
-              # ignore:
-              #   - /.*/
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore:
+                - /.*/
 
       - publish:
           context: org-global
