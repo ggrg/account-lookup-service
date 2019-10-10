@@ -477,10 +477,10 @@ jobs:
   image-scan:
     executor: anchore/anchore_engine
     steps:
-      - setup_remote_docker
-      - checkout
       - run:
           <<: *test_env
+      - setup_remote_docker
+      - checkout
       - attach_workspace:
           at: /tmp
       - run:
