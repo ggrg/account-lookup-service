@@ -419,6 +419,7 @@ jobs:
   publish:
     executor: default-machine
     steps:
+      - checkout
       - attach_workspace:
           at: /tmp
       - run:
