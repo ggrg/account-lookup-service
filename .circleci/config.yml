@@ -3,12 +3,6 @@ version: 2.1
 orbs:
   anchore: anchore/anchore-engine@1.6.0
 
-# Use this command to set the `CIRCLE_TAG` environment variable when testing without git tags
-# test_env: &test_env
-#   name: Set the sample CIRCLE_TAG
-#   command: |
-#     echo 'export CIRCLE_TAG=test' >> $BASH_ENV
-
 defaults_Dependencies: &defaults_Dependencies |
   apk --no-cache add git
   apk --no-cache add ca-certificates
@@ -173,9 +167,6 @@ jobs:
       - run:
           name: Access npm folder as root
           command: cd $(npm root -g)/npm
-      #      - run:
-      #          name: Install interledgerjs/five-bells-ledger-api-tests
-      #          command: npm install github:interledgerjs/five-bells-ledger-api-tests
       - run:
           name: Update NPM install
           command: npm install
@@ -267,81 +258,6 @@ jobs:
       - store_test_results:
           path: ./test/results
 
-  #  test-functional:
-  #    machine: true
-  #    <<: *defaults_working_directory
-  #    steps:
-  #      - run:
-  #          name: Add the Postgres 9.6 binaries to the path.
-  #          command: echo "/usr/lib/postgresql/9.6/bin/:$PATH" >> $BASH_ENV
-  #      - run:
-  #          name: Install Docker Compose
-  #          command: |
-  #            curl -L https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
-  #            chmod +x ~/docker-compose
-  #            mv ~/docker-compose /usr/local/bin/docker-compose
-  #      - checkout
-  #      - restore_cache:
-  #          key: dependency-cache-{{ checksum "package.json" }}
-  #      - run:
-  #          name: Create dir for test results
-  #          command: mkdir -p ./test/results
-  #      - run:
-  #          name: Execute functional tests
-  #          command: npm -s run test:functional
-  #      - store_artifacts:
-  #          path: ./test/results
-  #          prefix: test
-  #      - store_test_results:
-  #          path: ./test/results
-
-  #   test-spec:
-  #     machine: true
-  #     # <<: *defaults
-  #     steps:
-  #     #   - run:
-  #     #       name: Install general dependencies
-  #     #       command: *defaultDependencies
-  #     #   - run:
-  #     #       name: Add the Postgres 9.6 binaries to the path.
-  #     #       command: apk --no-cache add postgresql-client
-  #     #   - setup_remote_docker
-  #     #   - run:
-  #     #       name: Add docker
-  #     #       command: apk --no-cache add docker
-  #     #   - run:
-  #     #       name: Add docker compose
-  #     #       command: |
-  #     #         apk --no-cache add py-pip
-  #     #         pip install docker-compose
-  #     #   - run:
-  #     #       name: Install Docker Compose
-  #     #       command: |
-  #     #         curl -L https://github.com/docker/compose/releases/download/1.8.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose; chmod +x /usr/local/bin/docker-compose
-  #       - run:
-  #           name: Add the Postgres 9.6 binaries to the path.
-  #           command: echo "/usr/lib/postgresql/9.6/bin/:$PATH" >> $BASH_ENV
-  #       - run:
-  #           name: Install Docker Compose
-  #           command: |
-  #             curl -L https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
-  #             chmod +x ~/docker-compose
-  #             mv ~/docker-compose /usr/local/bin/docker-compose
-  #       - checkout
-  #       - restore_cache:
-  #           key: dependency-cache-{{ checksum "package.json" }}
-  #       - run:
-  #           name: Create dir for test results
-  #           command: mkdir -p ./test/results
-  #       - run:
-  #           name: Execute unit tests
-  #           command: npm -s run test:spec
-  #       - store_artifacts:
-  #           path: ./test/results
-  #           prefix: test
-  #       - store_test_results:
-  #           path: ./test/results
-
   vulnerability-check:
     executor: default-docker
     steps:
@@ -409,8 +325,6 @@ jobs:
     executor: default-machine
     steps:
       - checkout
-      # - run:
-          # <<: *test_env
       - run:
           <<: *defaults_environment
       - run:
@@ -430,8 +344,6 @@ jobs:
     executor: default-machine
     steps:
       - checkout
-      # - run:
-      #     <<: *test_env
       - run:
           <<: *defaults_environment
       - run:
@@ -451,8 +363,6 @@ jobs:
   license-scan:
     executor: default-machine
     steps:
-      # - run:
-      #     <<: *test_env
       - attach_workspace:
           at: /tmp
       - run:
@@ -485,7 +395,7 @@ jobs:
           policy_failure: false
           timeout: '500'
       - run:
-          name: View parsed vulnerability analysis report.
+          name: Evaluate Failures.
           command: |
             if [[ ! $(which jq) ]]; then
               (set +o pipefail; apk add jq || apt-get install -y jq || yum install -y jq)
@@ -502,8 +412,9 @@ jobs:
             # Check the status of the policy.json for whether or not our tests failed
             failCount=$(cat anchore-reports/*policy*.json | grep '\"status\": \"fail\"' | wc -l)
             if [ $failCount -gt 0 ]; then
-              echo "Found ${failCount} failures"
-              exit 1
+              echo "Failed with a policy failure count of: ${failCount}"
+              # TODO: reenable when we are happy with testing
+              # exit 1
             fi
 
       - store_artifacts:
@@ -611,97 +522,93 @@ workflows:
               ignore:
                 - /feature*/
                 - /bugfix*/
-      # TODO: disabled temporarily to speed up testing
-      # - test-unit:
-      #     context: org-global
-      #     requires:
-      #       - setup
-      #     filters:
-      #       tags:
-      #         only: /v[0-9]+(\.[0-9]+)*/
-      #       branches:
-      #         ignore:
-      #           - /feature*/
-      #           - /bugfix*/
-      # - test-coverage:
-      #     context: org-global
-      #     requires:
-      #       - setup
-      #     filters:
-      #       tags:
-      #         only: /v[0-9]+(\.[0-9]+)*/
-      #       branches:
-      #         ignore:
-      #           - /feature*/
-      #           - /bugfix*/
-      # - test-integration:
-      #     context: org-global
-      #     requires:
-      #       - setup
-      #     filters:
-      #       tags:
-      #         only: /.*/
-      #       branches:
-      #         ignore:
-      #           - /feature*/
-      #           - /bugfix*/
-      # - vulnerability-check:
-      #     context: org-global
-      #     requires:
-      #       - setup
-      #     filters:
-      #       tags:
-      #         only: /.*/
-      #       branches:
-      #         ignore:
-      #           - /feature*/
-      #           - /bugfix*/
-      # - audit-licenses:
-      #     context: org-global
-      #     requires:
-      #       - setup
-      #     filters:
-      #       tags:
-      #         only: /.*/
-      #       branches:
-      #         ignore:
-      #           - /feature*/
-      #           - /bugfix*/
-      # - build-snapshot:
-      #     context: org-global
-      #     requires:
-      #       - setup
-      #       - test-unit
-      #       - test-coverage
-      #       - test-integration
-      #     #            - test-functional
-      #     #            - test-spec
-      #     filters:
-      #       tags:
-      #         only: /v[0-9]+(\.[0-9]+)*\-snapshot/
-      #       branches:
-      #         ignore:
-      #           - /.*/
-      # - deploy-snapshot:
-      #     context: org-global
-      #     requires:
-      #       - build-snapshot
-      #     filters:
-      #       tags:
-      #         only: /v[0-9]+(\.[0-9]+)*\-snapshot/
-      #       branches:
-      #         ignore:
-      #           - /.*/
+      - test-unit:
+          context: org-global
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore:
+                - /feature*/
+                - /bugfix*/
+      - test-coverage:
+          context: org-global
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore:
+                - /feature*/
+                - /bugfix*/
+      - test-integration:
+          context: org-global
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore:
+                - /feature*/
+                - /bugfix*/
+      - vulnerability-check:
+          context: org-global
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore:
+                - /feature*/
+                - /bugfix*/
+      - audit-licenses:
+          context: org-global
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore:
+                - /feature*/
+                - /bugfix*/
+      - build-snapshot:
+          context: org-global
+          requires:
+            - setup
+            - test-unit
+            - test-coverage
+            - test-integration
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*\-snapshot/
+            branches:
+              ignore:
+                - /.*/
+      - deploy-snapshot:
+          context: org-global
+          requires:
+            - build-snapshot
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*\-snapshot/
+            branches:
+              ignore:
+                - /.*/
       - build:
           context: org-global
           requires:
             - setup
-            # TODO: disabled temporarily to speed up testing
-            # - test-unit
-            # - test-coverage
-            # - test-integration
-            # - vulnerability-check
-            # - audit-licenses
+            - test-unit
+            - test-coverage
+            - test-integration
+            - vulnerability-check
+            - audit-licenses
           filters:
             tags:
               only: /v[0-9]+(\.[0-9]+)*/
