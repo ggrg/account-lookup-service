@@ -461,7 +461,6 @@ jobs:
       - run:
           <<: *test_env
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /tmp
       - run:
           name: refresh docker image from workspace
@@ -483,14 +482,13 @@ jobs:
       - run:
           <<: *test_env
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /tmp
       - run:
           name: refresh docker image from workspace
           command: docker load -i /tmp/docker-image.tar
       - anchore/analyze_local_image:
           dockerfile_path: ./Dockerfile
-          image_name: $DOCKER_ORG/$CIRCLE_PROJECT_REPONAME:$CIRCLE_TAG
+          image_name: ${DOCKER_ORG}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
           policy_bundle_file_path: .circleci/.anchore/policy_bundle.json
           policy_failure: true
           timeout: '500'
